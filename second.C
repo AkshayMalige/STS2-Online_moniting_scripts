@@ -132,6 +132,18 @@ struct detLoc {
    int straw;
 };
 
+struct sts_hit {
+
+	float lt=0;
+	float tot=0;
+	float dt=0;
+	int lay=0;
+	int straw=0;
+	int plane=0;
+	int mod=0;
+
+};
+
 class Detector {
    public:
       map < int, detLoc > detMap;
@@ -154,6 +166,7 @@ class LPetProcessor: public base::EventProc {
 
    TH1F * h_Tot;
    TH1F * h_driftTime;
+   TH2F * h_driftTimeVsTOT1;
    TH2F * h_driftTimeVsTOT;
    TH1F * h_leadTime;
    TH1F * h_trailTime;
@@ -171,25 +184,30 @@ class LPetProcessor: public base::EventProc {
    TH1F * h_sts1_eff_straws;
    TH1F * h_sts2_eff_straws;
    TH1F * h_rpc_dt;
+   TH1F * h_rpc_dt1;
 	TH1F * h_sts2_dt;
    TH1F * h_dummy_dt;
+   TH1F * h_dummy_dt1;
    TH1F * h_lt_diff;
-
    TH1F * h_rpc_lt;
-
    TH2F * h_sts1_eff_Lstraws;
    TH2F * h_sts2_eff_Lstraws;
+
+   TH1F * h_rpc_10dt;
+   TH1F * h_rpc_20dt;
+   TH1F * h_rpc_alldt;
+	
 
    TH2D * h_FT_Geo;
    TH2D * h_FT_Geo2;
 
-   TH1F * h_sts_entries;
+   TH1D * h_sts_entries;
    //TH2F* h_geo;
 
    TH1F * h_Layer_Tot[LAYERS];
    TH1F * h_Layer_Straw[LAYERS];
    TH1F * h_Layer_driftTime[LAYERS];
-   //TH2F* h_Layer_driftTimeVsTOT[LAYERS]; 
+   TH2F* h_Layer_driftTimeVsTOT[LAYERS]; 
    TH1F * h_Layer_leadTime[LAYERS];
    TH1F * h_Layer_trailTime[LAYERS];
    //TH2F* h_Layer_TotVsChannel[LAYERS];
@@ -206,6 +224,8 @@ class LPetProcessor: public base::EventProc {
    //TH2F* h_Module_TotVsStraw[MODULES];
    //TH2F* h_Module_driftTimeVsChannel[MODULES];
    //TH2F* h_Module_leadTimeVsChannel[MODULES];
+   
+   TH2D * h_TDC_Gtime;
 
    TH1F * h_refTimeTRB1;
    TH1F * h_refTimeTRB2;
@@ -299,12 +319,13 @@ class LPetProcessor: public base::EventProc {
       tdcs = vector < hadaq::TdcSubEvent * > ();
       h_Tot = new TH1F("TOT", "TOT;Time Over Threshold [ns]", 1000, 0, 1000);
       h_driftTime = new TH1F("DriftTime", "DriftTime; Drift Time", 5000, -5000, 5000);
+      h_driftTimeVsTOT1 = new TH2F("DriftTime_vs_TOT1", "DriftTime_vs_TOT;Drift Time;Time Over Threshold", 600, -300, 300, 650, 0, 650);
       h_driftTimeVsTOT = new TH2F("DriftTime_vs_TOT", "DriftTime_vs_TOT;Drift Time;Time Over Threshold", 600, -300, 300, 650, 0, 650);
       h_leadTime = new TH1F("leadTime", "leadTime;Lead time", 10000, -10000, 10000);
       h_lt_diff = new TH1F("h_lt_diff", "h_lt_diff;Lead time diff", 10000, -10000, 10000);
       h_trailTime = new TH1F("Trail_Time", "Trail_Time; Trail time", 10000, -10000, 10000);
-      h_TotVsChannel = new TH2F("TOT_vs_Channel", "TOT_vs_Channel;Time over threshold [ns];TDC Channel No", 600, 0, 600, CHANNELS, 0, CHANNELS);
-      h_driftTimeVsChannel = new TH2F("DriftTime_vs_Channel", "Drift_Time_vs_Channel;Drift Time;TDC Channel", 500, 0, 500, CHANNELS, 0, CHANNELS);
+      h_TotVsChannel = new TH2F("TOT_vs_Channel", "TOT_vs_Channel;Time over threshold [ns];TDC Channel No", 600, 0, 600, 1200, 0, 1200);
+      h_driftTimeVsChannel = new TH2F("DriftTime_vs_Channel", "Drift_Time_vs_Channel;Drift Time;TDC Channel", 500, 0, 500, 1300, 0, 1300);
       h_leadTimeVsChannel = new TH2F("LeadTime_vs_Channel", "LeadTime_vs_Channel;Lead time;TDC Channel No", 10000, -10000, 10000, CHANNELS, 0, CHANNELS);
       h_channelMult = new TH1F("Channel_Mult", "channelMult;Channel No", CHANNELS, 0, CHANNELS);
       h_strawMult = new TH1F("Straw_Mult", "strawMult;Straw No", STRAWS * 9, 0, STRAWS * 9);
@@ -320,22 +341,30 @@ class LPetProcessor: public base::EventProc {
       h_sts1_eff_Lstraws = new TH2F("h_sts1_eff_Lstraws", "Straw multiplicity ;Layer;Straw multiplicity", 6, 0, 6, 50, 0, 50);
       h_sts2_eff_Lstraws = new TH2F("h_sts2_eff_Lstraws", "Straw multiplicity;Layer;Straw multiplicity", 6, 0, 6, 50, 0, 50);
 
-      h_sts_entries = new TH1F("h_sts_entries", "h_sts_entries;h_sts_entries", 5, 0, 5);
+      h_sts_entries = new TH1D("h_sts_entries", "h_sts_entries;h_sts_entries", 5, 0, 5);
 
       h_rpc_lt = new TH1F("h_rpc_lt", "LT", 3000, -500, 2500);
       h_rpc_dt = new TH1F("h_rpc_dt", "dt", 2000, -1000, 1000);
+      h_rpc_dt1 = new TH1F("h_rpc_dt1", "dt", 2000, -1000, 1000);
       h_sts2_dt = new TH1F("h_sts2_dt", "dt [ ns ]", 2000, -1000, 1000);
       h_dummy_dt = new TH1F("h_dummy_dt", "dt", 2000, -1000, 1000);
+      h_dummy_dt1 = new TH1F("h_dummy_dt1", "dt", 2000, -1000, 1000);
+
+      h_rpc_10dt = new TH1F("h_rpc_10dt", "dt", 2000, -1000, 1000);
+      h_rpc_20dt = new TH1F("h_rpc_20dt", "dt", 2000, -1000, 1000);
+      h_rpc_alldt = new TH1F("h_rpc_alldt", "dt", 2000, -1000, 1000);
 
       h_FT_Geo = new TH2D("h_FT_Geo", "h_FT_Geo;Straw No;Sub Layer no", 522, -1, 260, 20, 0, 10);
       h_FT_Geo2 = new TH2D("h_FT_Geo2", "h_FT_Geo2;Straw No;check Sub Layer no", 522, -1, 260, 20, 0, 10);
+      
+      h_TDC_Gtime = new TH2D("h_TDC_Gtime", "h_TDC_Gtime;Time;TDC", 10000, -10000, 10000, 50, 0, 50);
       //h_geo = new TH2F("geo", "geo", 522, 0, 260, 10, 0, 5);
 
       for (int i = 0; i < LAYERS; i++) {
          if (i < 4) {
             h_Layer_Tot[i] = new TH1F(Form("STS2_Layer_%d_TOT", i + 1), Form("STS2_Layer_%d_TOT;Time Over Threshold [ns]", i + 1), 1000, 0, 1000);
             h_Layer_driftTime[i] = new TH1F(Form("STS2_Layer_%d_DriftTime", i + 1), Form("STS2_Layer_%d_DriftTime;Drift Time [ns]", i + 1), 5000, -5000, 5000);
-            //h_Layer_driftTimeVsTOT[i] = new TH2F(Form("STS2_Layer_%d_driftTimeVsTOT", i+1) , Form("STS2_Layer_%d_driftTimeVsTOT;Drift Time [ns];Time Over Threshold [ns]", i+1), 500, 0, 500, CHANNELS, 0, CHANNELS);
+            h_Layer_driftTimeVsTOT[i] = new TH2F(Form("STS2_Layer_%d_driftTimeVsTOT", i+1) , Form("STS2_Layer_%d_driftTimeVsTOT;Drift Time [ns];Time Over Threshold [ns]", i+1), 1000, -400, 600, 650, 0, 650);
             h_Layer_leadTime[i] = new TH1F(Form("STS2_Layer_%d_leadTime", i + 1), Form("STS2_Layer_%d_leadTime;leadTime", i + 1), 10000, -10000, 10000);
             h_Layer_trailTime[i] = new TH1F(Form("STS2_Layer_%d_trailTime", i + 1), Form("STS2_Layer_%d_trailTime;trailTime", i + 1), 10000, -10000, 10000);
             //h_Layer_TotVsChannel[i] = new TH2F(Form("STS2_Layer_%d_TotVsChannel", i+1) , Form("STS2_Layer_%d_TotVsChannel;Time Over Threshold [ns];Channel No", i+1), 600, 0, 600, CHANNELS, 0, CHANNELS);
@@ -345,7 +374,7 @@ class LPetProcessor: public base::EventProc {
          } else {
             h_Layer_Tot[i] = new TH1F(Form("STS1_Layer_%d_TOT", i - 3), Form("STS1_Layer_%d_TOT;Time Over Threshold [ns]", i - 3), 1000, 0, 1000);
             h_Layer_driftTime[i] = new TH1F(Form("STS1_Layer_%d_DriftTime", i - 3), Form("STS1_Layer_%d_DriftTime;Drift Time [ns]", i - 3), 5000, -5000, 5000);
-            //h_Layer_driftTimeVsTOT[i] = new TH2F(Form("STS1_Layer_%d_driftTimeVsTOT", i-3) , Form("STS1_Layer_%d_driftTimeVsTOT;Drift Time [ns];Time Over Threshold [ns]", i-3), 500, 0, 500, CHANNELS, 0, CHANNELS);
+            h_Layer_driftTimeVsTOT[i] = new TH2F(Form("STS1_Layer_%d_driftTimeVsTOT", i-3) , Form("STS1_Layer_%d_driftTimeVsTOT;Drift Time [ns];Time Over Threshold [ns]", i-3),  1000, -400, 600, 650, 0, 650);
             h_Layer_leadTime[i] = new TH1F(Form("STS1_Layer_%d_leadTime", i - 3), Form("STS1_Layer_%d_leadTime;leadTime", i - 3), 10000, -10000, 10000);
             h_Layer_trailTime[i] = new TH1F(Form("STS1_Layer_%d_trailTime", i - 3), Form("STS1_Layer_%d_trailTime;trailTime", i - 3), 10000, -10000, 10000);
             //h_Layer_TotVsChannel[i] = new TH2F(Form("STS1_Layer_%d_TotVsChannel", i-3) , Form("STS1_Layer_%d_TotVsChannel;Time Over Threshold [ns];Channel No", i-3), 600, 0, 600, CHANNELS, 0, CHANNELS);
@@ -399,11 +428,12 @@ class LPetProcessor: public base::EventProc {
       RegisterObject(h_Tot, "GeneralInfo");
       //	RegisterObject(h_driftTime, "GeneralInfo");
       RegisterObject(h_driftTimeVsTOT, "GeneralInfo");
+      RegisterObject(h_driftTimeVsTOT1, "GeneralInfo");
       RegisterObject(h_leadTime, "GeneralInfo");
       RegisterObject(h_trailTime, "GeneralInfo");
       RegisterObject(h_TotVsChannel, "GeneralInfo");
       RegisterObject(h_lt_diff, "GeneralInfo");
-      //	RegisterObject(h_driftTimeVsChannel, "GeneralInfo");
+      RegisterObject(h_driftTimeVsChannel, "GeneralInfo");
       RegisterObject(h_leadTimeVsChannel, "GeneralInfo");
       RegisterObject(h_channelMult, "GeneralInfo");
       RegisterObject(h_strawMult, "GeneralInfo");
@@ -419,13 +449,21 @@ class LPetProcessor: public base::EventProc {
       RegisterObject(h_sts2_eff_Lstraws, "GeneralInfo");
       RegisterObject(h_rpc_lt, "GeneralInfo");
       RegisterObject(h_rpc_dt, "GeneralInfo");
+      RegisterObject(h_rpc_dt1, "GeneralInfo");
       RegisterObject(h_sts2_dt, "GeneralInfo");
       RegisterObject(h_sts_entries, "GeneralInfo");
 
+      
+      RegisterObject(h_rpc_10dt, "GeneralInfo");
+      RegisterObject(h_rpc_20dt, "GeneralInfo");
+      RegisterObject(h_rpc_alldt, "GeneralInfo");
+      
+      RegisterObject(h_TDC_Gtime, "GeneralInfo");
+      
       for (int i = 0; i < LAYERS; i++) {
          RegisterObject(h_Layer_Tot[i], "LayerInfo");
          //  RegisterObject(h_Layer_driftTime[i], "LayerInfo");
-         //  RegisterObject(h_Layer_driftTimeVsTOT[i], "LayerInfo");
+           RegisterObject(h_Layer_driftTimeVsTOT[i], "LayerInfo");
          RegisterObject(h_Layer_leadTime[i], "LayerInfo");
          RegisterObject(h_Layer_trailTime[i], "LayerInfo");
          // RegisterObject(h_Layer_TotVsChannel[i], "LayerInfo");
@@ -557,10 +595,10 @@ class LPetProcessor: public base::EventProc {
       int hitMultOnLayer[LAYERS + 1];
       int dtHitsMult[LAYERS + 1][CHANNELS + 1];
 
-      for (int l = 0; l <= LAYERS; l++) {
+      for (int l = 0; l < LAYERS; l++) {
          hitMultOnLayer[l] = 0;
          TotLay[l] = 0;
-         for (int m = 0; m <= CHANNELS; m++) {
+         for (int m = 0; m < CHANNELS; m++) {
             dtHitsMult[l][m] = 0;
          }
 
@@ -584,6 +622,8 @@ class LPetProcessor: public base::EventProc {
             if (ext.msg().isHitRisingEdge() == true) {
                leadTimes[local_ch][leadTimesNum[local_ch]] = ext.GetGlobalTime() * 1e9;
                leadTimesNum[local_ch]++;
+               
+               h_TDC_Gtime->Fill(ext.GetGlobalTime() * 1e9 , tdc_ptr);
 
             } else if (ext.msg().isHitRisingEdge() == false) {
                trailTimes[local_ch][trailTimesNum[local_ch]] = ext.GetGlobalTime() * 1e9;
@@ -701,10 +741,15 @@ class LPetProcessor: public base::EventProc {
 
       //for(int t=0; t<NUMBER_OF_TDCS; t++){tdc_id[t]=0;}
 
-      vector < float > vec_lt;
-	vector < float > vec_tot;
-      vec_lt.clear();
-      vec_tot.clear();
+	vector<sts_hit> vec_hit;
+    
+	vec_hit.clear();
+	
+    vector<sts_hit> vec_hitS1;
+    
+	vec_hitS1.clear();
+
+
       float mean_lt=0;
       float sum_lt=0;
       int lt_count=0;
@@ -764,6 +809,7 @@ class LPetProcessor: public base::EventProc {
 
                   h_Module_leadTime[module - 1] -> Fill(leadTimes[k][l]);
                   h_Module_trailTime[module - 1] -> Fill(trailTimes[k][l]);
+                  
                   //  h_Module_leadTimeVsChannel[module-1]->Fill(leadTimes[k][l],k);
                   //cout<<"sts :"<<tdc<<"\t"<<refTime[tdc]+rpc_ref[0]<<"\t"<<refTime[tdc]+rpc_ref[1]<<"\t"<<refTime[tdc]+rpc_ref[2]<<"\t"<<refTime[tdc]+rpc_ref[3]<<endl;
                   //cout<<"Layer :"<<loc.layer<<"\t"<<trailTimesNum[k] <<"\t"<< leadTimesNum[k]<<"\t"<<leadTimes[k][l] <<"\t"<< trailTimes[k][l]<<"\t"<<Tot[k][TotNum[k]]<<endl;
@@ -775,20 +821,45 @@ class LPetProcessor: public base::EventProc {
                      //drifttime = ( scint_time - leadTimes[k][l] ) - ref_diff;
                      drifttime =  leadTimes[k][l] - rpc_hit[0];
                      //printf("%lf\n",drifttime);
+                     if(loc.layer>0 && loc.layer<5 && Tot[k][TotNum[k]]>0)h_sts_entries->Fill(4);
 
                      if(loc.layer <5){
-                     vec_lt.push_back(leadTimes[k][l]);
-			vec_tot.push_back(Tot[k][TotNum[k]]);
-                     sum_lt+=leadTimes[k][l];
-                     lt_count++;
-                     h_dummy_dt -> Fill(drifttime);
+                    
+                        sts_hit s_hit;
+                        s_hit.lt = leadTimes[k][l];
+                        s_hit.tot=Tot[k][TotNum[k]];
+                        s_hit.dt=drifttime;
+                        s_hit.lay=loc.layer - 1;
+                        s_hit.straw=(module % 8 == 0) ? ((loc.layer - 1) * 256) + loc.straw - 128 : ((loc.layer - 1) * 256) + loc.straw;
+                        s_hit.plane=plane;
+                        s_hit.mod=module;
+                        
+                        vec_hit.push_back(s_hit);
+                        
+                        sum_lt+=leadTimes[k][l];
+                        lt_count++;
+                        h_dummy_dt -> Fill(drifttime-30);
+                     }
+                     if(loc.layer >4){
+                        sts_hit s1_hit;
+                        s1_hit.lt = leadTimes[k][l];
+                        s1_hit.tot=Tot[k][TotNum[k]];
+                        s1_hit.dt=drifttime;
+                        s1_hit.lay=loc.layer - 1;
+                        s1_hit.straw= ((loc.layer - 1) * 256) + loc.straw;
+                        s1_hit.plane=plane;
+                        s1_hit.mod=module;
+                        
+                        vec_hitS1.push_back(s1_hit);
+                        
+                        h_dummy_dt1 -> Fill(drifttime-30);                     
                      }
 
                  //    if ((drifttime >= -500 and drifttime <= 200) and(Tot[k][TotNum[k]] >= 0 and Tot[k][TotNum[k]] <= 600)) {
-                        h_Tot -> Fill(Tot[k][TotNum[k]]); //General
+                       // h_Tot -> Fill(Tot[k][TotNum[k]]); //General
                         //  h_driftTime->Fill(0);
                         
-                        h_TotVsChannel -> Fill(Tot[k][TotNum[k]], k);
+                        h_TotVsChannel -> Fill(Tot[k][TotNum[k]], ((loc.layer - 1) * 256) + loc.straw);
                         //  h_driftTimeVsChannel->Fill(drifttime,k);
 
                         h_Layer_Tot[loc.layer - 1] -> Fill(Tot[k][TotNum[k]]); //Layers
@@ -856,9 +927,11 @@ class LPetProcessor: public base::EventProc {
       } //loop over channels
 
       int hit_mult = 0;
+      int hit_mult1 = 0;
       int mod_mult = 0;
       int plane_mult = 0;
       int layer_mult = 0;
+      int straw_mult = 0;
       int stef1_mult[LAYERS];
       int stef2_mult[LAYERS];
 
@@ -879,18 +952,24 @@ class LPetProcessor: public base::EventProc {
          stef1_mult[ly] = 0;
       }
 
-      for (int ht = 0; ht < CHANNELS; ht++) {
+      for (int ht = 0; ht < 1030; ht++) {
          if (TotNum[ht] > 0) {
             hit_mult++;
          }
       }
+    for (int ht = 1030; ht < 2300; ht++) {
+         if (TotNum[ht] > 0) {
+            hit_mult1++;
+         }
+      }
+      
       for (int md = 0; md < MODULES; md++) {
          if (TotMod[md] > 0) {
             mod_mult++;
          }
       }
       for (int pl = 0; pl < LAYERS * 2; pl++) {
-         if (TotPlane[pl] > 0) {
+         if (TotPlane[pl] > 0 && pl<8) {
             plane_mult++;
          }
 
@@ -911,7 +990,10 @@ class LPetProcessor: public base::EventProc {
             layer_mult++;
          }
          for (int j = 0; j < STRAWS; j++) {
-            if (TotStraw[ly][j] > 0 and ly<4) stef2_mult[ly]++;
+            if (TotStraw[ly][j] > 0 and ly<4){ 
+            	stef2_mult[ly]++;
+            	straw_mult++;
+            }            
          }
       }
 
@@ -919,43 +1001,72 @@ class LPetProcessor: public base::EventProc {
          for (int ly = 0; ly < 4; ly++) {
             h_sts2_eff_Lstraws -> Fill(ly + 1, stef2_mult[ly]);
          }
+         h_sts2_peff -> Fill(sts2_pmult - 2);
       }
 
       if (s1_t == true) {
          for (int ly = 4; ly < LAYERS; ly++) {
            // h_sts1_eff_Lstraws -> Fill(ly - 3, stef1_mult[ly]);
          }
+         h_sts1_peff -> Fill(sts1_pmult - 2);
       }
       h_layerMultiplicity -> Fill(layer_mult);
       h_planeMultiplicity -> Fill(plane_mult);
       h_hitMultiplicity -> Fill(hit_mult);
       //h_strawMult->Fill(straw_mult);
-      h_sts1_peff -> Fill(sts1_pmult - 2);
-      h_sts2_peff -> Fill(sts2_pmult - 2);
-      if (s2_t == true) {
+     // h_sts1_peff -> Fill(sts1_pmult - 2);
+    //  h_sts2_peff -> Fill(sts2_pmult - 2);
+
+
+      if (plane_mult == 8 && hit_mult==8) {
          h_sts_entries -> Fill(2);
          h_rpc_dt -> Add(h_dummy_dt);
       }
+      else if (plane_mult == 8 && hit_mult<10){
+          h_rpc_10dt -> Add(h_dummy_dt);
+    }
+        else if (plane_mult == 8 && hit_mult<20){
+          h_rpc_20dt -> Add(h_dummy_dt);
+    }
+        else if (sts1_pmult == 8 && hit_mult==8){
+          h_rpc_dt1 -> Add(h_dummy_dt1);
+    }
+    h_rpc_alldt-> Add(h_dummy_dt);
+    h_dummy_dt -> Reset("ICESM");
+    h_dummy_dt1 -> Reset("ICESM");
+
       if (s1_t == true) h_sts_entries -> Fill(1);
-      h_dummy_dt -> Reset("ICESM");
 
       mean_lt= sum_lt/lt_count;
-      if (vec_lt.size() > 1) {
-         for (int v = 1; v < vec_lt.size(); v++) {
+      if (vec_hit.size() > 1) {
+         for (int v = 1; v < vec_hit.size(); v++) {
 
            // h_lt_diff -> Fill(mean_lt - vec_lt[v]);
-		 h_lt_diff -> Fill(vec_lt[0] - vec_lt[v]);
+		 h_lt_diff -> Fill(vec_hit[0].lt - vec_hit[v].lt);
 		
          }
       }
-	if(vec_lt.size() > 4 and s2_t == true){
-		for (int v = 0; v < vec_lt.size(); v++) {
+	if(plane_mult == 8 && hit_mult==8){
+		for (int v = 0; v < vec_hit.size(); v++) {
 
-        		h_sts2_dt -> Fill( vec_lt[v] - mean_lt );
-			h_driftTimeVsTOT->Fill( vec_lt[v] - mean_lt,vec_tot[v]);
+        		h_sts2_dt -> Fill( vec_hit[v].lt - mean_lt +70 );
+                h_driftTimeVsTOT->Fill( vec_hit[v].dt,vec_hit[v].tot);
+                h_Tot->Fill(vec_hit[v].tot);
+                h_Layer_driftTimeVsTOT[vec_hit[v].lay]->Fill( vec_hit[v].dt,vec_hit[v].tot );
+                h_driftTimeVsChannel->Fill(vec_hit[v].dt,vec_hit[v].straw);
+                
         	}
 	}
 
+	
+    if(sts1_pmult == 8 && hit_mult1==8){
+		for (int v = 0; v < vec_hitS1.size(); v++) {
+
+                h_driftTimeVsTOT1->Fill( vec_hitS1[v].dt,vec_hitS1[v].tot);
+                h_Layer_driftTimeVsTOT[vec_hitS1[v].lay]->Fill( vec_hitS1[v].dt,vec_hitS1[v].tot );
+                
+        	}
+	}
       //cout << "\t" << vec_lt.size() << endl;
       //h_sts1_eff_straws->Fill(stef1_mult);
       //h_sts2_eff_straws->Fill(stef2_mult);
